@@ -1,6 +1,8 @@
 # Firebase Configuration Security Testing Tool
 
 A Python tool for testing Firebase configurations for potential security misconfigurations.
+The reason I decided to create separate tool is because other tools performs only specific checks and I want just to feed a single line with found config to make all checks.
+Main goal of this tool is to cover all checks and put them together. If you know other checks feel free to create issue and I'll see if they can be added too.
 
 ## Installation
 
@@ -116,6 +118,18 @@ python3 fb_tester.py --firebase-config "$(cat config.json)"
 ```bash
 python3 fb_tester.py --firebase-config '...' -d > debug_output.txt
 ```
+
+## Thanks
+https://blog.securitybreached.org/2020/02/04/exploiting-insecure-firebase-database-bugbounty/ @MuhammadKhizerJaved
+https://danangtriatmaja.medium.com/firebase-database-takover-b7929bbb62e1 @Danang Tri Atmaja
+
+HackerOne reports:
+https://hackerone.com/reports/684099
+https://hackerone.com/reports/736283
+
+## TO-DO
+1. Check for FCM takeover and support AAAA keys: https://web.archive.org/web/20220921183800/https://abss.me/posts/fcm-takeover/?s=09
+2. Check for accessible Cloud Firestore collections (try to guess) and ability to write: https://iosiro.com/blog/baserunner-exploiting-firebase-datastores
 
 ## Contributing
 
