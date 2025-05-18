@@ -121,7 +121,7 @@ python3 fb_tester.py --firebase-config '...' -d > debug_output.txt
 
 ## Thanks
 - https://blog.securitybreached.org/2020/02/04/exploiting-insecure-firebase-database-bugbounty/ @MuhammadKhizerJaved
-- https://danangtriatmaja.medium.com/firebase-database-takover-b7929bbb62e1 @Danang Tri Atmaja
+- https://danangtriatmaja.medium.com/firebase-database-takover-b7929bbb62e1 @Danang Tri Atmaja
 
 HackerOne reports:
 https://hackerone.com/reports/684099
