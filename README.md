@@ -124,8 +124,8 @@ python3 fb_tester.py --firebase-config '...' -d > debug_output.txt
 - https://danangtriatmaja.medium.com/firebase-database-takover-b7929bbb62e1 @Danang Tri Atmaja
 
 HackerOne reports:
-https://hackerone.com/reports/684099
-https://hackerone.com/reports/736283
+- https://hackerone.com/reports/684099
+- https://hackerone.com/reports/736283
 
 ## TO-DO
 1. Check for FCM takeover and support AAAA keys: https://web.archive.org/web/20220921183800/https://abss.me/posts/fcm-takeover/?s=09
