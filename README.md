@@ -96,7 +96,7 @@ python3 fb_tester.py --firebase-config '...' --email "test@example.com" --passwo
 The tool provides clear status indicators for each check:
 - ✓ - Check passed (potential vulnerability)
 - ✗ - Check failed (secure)
-- - - Check skipped (missing required configuration)
+- "-" - Check skipped (missing required configuration)
 
 ## Examples
 
