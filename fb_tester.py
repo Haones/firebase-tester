@@ -9,7 +9,7 @@ Usage examples:
     python3 firebase_test.py --firebase-config '{"apiKey":"AIza...","authDomain":"proj.firebaseapp.com"}'
     
     # Parse JavaScript config with unquoted keys
-    python3 firebase_test.py --firebase-config '{apiKey:"AIza...",authDomain:"proj.firebaseapp.com"}'
+    python3 firebase_test.py --firebase-config '{apiKey:"AIza...",authDomain:"proj.firebaseapp.com"}' (currently broken and not supported, claude couldn't make a proper way to parse that one)
     
     # Parse multiline config 
     python3 firebase_test.py --firebase-config '{
