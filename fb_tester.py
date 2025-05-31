@@ -593,55 +593,113 @@ def parse_firebase_config(config_string: str) -> Dict[str, str]:
     # Strip any leading/trailing whitespace
     config_string = config_string.strip()
     
-    # First try to parse as JSON directly
+    # First try to parse as valid JSON directly
     try:
         config = json.loads(config_string)
         return config
     except json.JSONDecodeError:
         pass
     
-    # Handle JavaScript object format with quotes around keys
-    js_pattern = r'(\w+):\s*[\'"]([^\'"]+)[\'"],?'
-    matches = re.findall(js_pattern, config_string)
+    # Remove comments and clean up the string
+    lines = []
+    for line in config_string.split('\n'):
+        # Remove comments
+        line = re.sub(r'//.*$', '', line)
+        line = re.sub(r'/\*.*?\*/', '', line)
+        lines.append(line)
+    config_string = '\n'.join(lines)
     
-    if matches:
-        return {key: value for key, value in matches}
-    
-    # Handle unquoted keys in JavaScript object format
-    # Convert unquoted keys format to JSON
+    # Try to convert JavaScript object notation to valid JSON
+    # This handles multiple formats: unquoted keys, single quotes, etc.
     try:
-        # Replace unquoted keys with quoted keys
-        # Match anything that looks like: key:"value" or key:'value'
-        unquoted_pattern = r'(\w+):\s*'
-        processed_string = re.sub(unquoted_pattern, r'"\1":', config_string)
+        # Handle cases where the object might not be wrapped in braces
+        if not config_string.strip().startswith('{'):
+            config_string = '{' + config_string + '}'
         
-        # Replace single quotes with double quotes for values
-        processed_string = processed_string.replace("'", '"')
+        # Step 1: Handle unquoted keys (convert to quoted keys)
+        # Match unquoted keys more carefully - only at the beginning of lines or after commas/braces
+        # This regex looks for word characters that are followed by optional whitespace and a colon,
+        # but only when they're at the start of a line (after whitespace) or after { or ,
+        config_string = re.sub(r'(^|\s|[{,])\s*(\w+)(\s*):', r'\1"\2"\3:', config_string, flags=re.MULTILINE)
         
-        # Parse as JSON
-        config = json.loads(processed_string)
+        # Step 2: Replace single quotes with double quotes for string values
+        # Be more careful - only replace single quotes that surround complete values
+        config_string = re.sub(r":\s*'([^']*)'", r': "\1"', config_string)
+        
+        # Step 3: Remove trailing commas before closing braces/brackets
+        config_string = re.sub(r',(\s*[}\]])', r'\1', config_string)
+        
+        # Try to parse as JSON
+        config = json.loads(config_string)
         return config
-    except json.JSONDecodeError:
-        # If still fails, try line by line approach
-        config = {}
         
-        # Extract key-value pairs with regex
-        full_pattern = r'(\w+):\s*[\'"]([^\'"]+)[\'"]'
-        for line in config_string.split('\n'):
-            line = line.strip()
-            if not line or line.startswith('#') or line in ['{', '}']:
-                continue
-                
-            match = re.search(full_pattern, line)
-            if match:
-                key, value = match.groups()
-                config[key] = value
-                
-        if config:
-            return config
-                
-        # If all attempts fail, raise an error
-        raise ValueError("Unable to parse Firebase configuration. Please check the format.")
+    except json.JSONDecodeError as e:
+        # If JSON conversion fails, fall back to regex parsing
+        pass
+    
+    # Fallback: Extract key-value pairs using a more sophisticated line-by-line approach
+    config = {}
+    
+    for line in config_string.split('\n'):
+        line = line.strip()
+        # Skip empty lines, comments, and braces
+        if not line or line.startswith('#') or line.startswith('//') or line in ['{', '}', ',']:
+            continue
+        
+        # Remove trailing comma if present
+        line = line.rstrip(',')
+        
+        # Find the key-value separator (first colon not inside quotes)
+        if ':' not in line:
+            continue
+        
+        # Parse the line character by character to find the key-value separator
+        key_end = -1
+        in_quotes = False
+        quote_char = None
+        
+        for i, char in enumerate(line):
+            if char in ['"', "'"] and (i == 0 or line[i-1] != '\\'):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+            elif char == ':' and not in_quotes:
+                key_end = i
+                break
+        
+        if key_end == -1:
+            continue
+            
+        # Extract key and value parts
+        key_part = line[:key_end]
+        value_part = line[key_end + 1:]
+        
+        # Clean up the key (remove quotes and whitespace)
+        key = key_part.strip().strip('\'"')
+        
+        # Clean up the value - handle quoted strings properly
+        value = value_part.strip()
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            # Properly quoted value - remove the outer quotes
+            value = value[1:-1]
+        
+        # Store the key-value pair
+        if key:
+            config[key] = value
+    
+    if config:
+        return config
+    
+    # If all attempts fail, raise an error
+    raise ValueError("Unable to parse Firebase configuration. Please check the format.\n"
+                   "Supported formats:\n"
+                   '- JSON: {"apiKey":"value","authDomain":"value"}\n'
+                   "- Unquoted keys: {apiKey:'value',authDomain:'value'}\n"
+                   "- Mixed quotes: {apiKey:\"value\",authDomain:'value'}\n"
+                   "- Multiline with whitespace")
 
 
 def main():
