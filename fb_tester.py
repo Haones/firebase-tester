@@ -579,6 +579,9 @@ class FirebaseConfigTester:
         # Check 5: Remote config
         self.check_remote_config()
         
+        # Check 6: Firestore collections
+        self.check_firestore_collections()
+        
         # Additional checks
         self.check_crashlytics()
         
