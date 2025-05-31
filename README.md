@@ -85,11 +85,13 @@ python3 fb_tester.py --firebase-config '...' --email "test@example.com" --passwo
 ## Security Checks Performed
 
 1. **User Registration** - Tests if new user registration is allowed with the API key
-2. **Storage Bucket Access** - Checks accessibility of Firebase Storage and Google Cloud Storage
-3. **Storage Upload** - Tests file upload capabilities (both authenticated and anonymous)
-4. **Database Access** - Tests read/write access to Firebase Realtime Database
-5. **Remote Config** - Attempts to fetch remote configuration data
-6. **Crashlytics** - Checks for access to crash reporting data
+2. **Storage Bucket Access** - Checks accessibility of Firebase Storage and Google Cloud Storage (tests anonymous, Bearer token, and Firebase token authentication)
+3. **Storage Upload** - Tests file upload capabilities (anonymous, Bearer token, and Firebase token authentication)
+4. **Database Access** - Tests read/write access to Firebase Realtime Database (anonymous, Bearer token, and Firebase token authentication)
+5. **Database General Access** - Tests common database endpoints for data exposure
+6. **Remote Config** - Attempts to fetch remote configuration data
+7. **Firestore Collections** - Checks for accessible Firestore collections using common collection names (anonymous, Bearer token, and Firebase token authentication)
+8. **Crashlytics** - Checks for access to crash reporting data
 
 ## Output
 
@@ -97,6 +99,13 @@ The tool provides clear status indicators for each check:
 - ✓ - Check passed (potential vulnerability)
 - ✗ - Check failed (secure)
 - "-" - Check skipped (missing required configuration)
+
+**Authentication Types Tested:**
+- **Anonymous** - No authentication headers
+- **Bearer Token** - Legacy authentication using `Authorization: Bearer {token}`
+- **Firebase Token** - Modern authentication using `Authorization: Firebase {token}`
+
+The tool automatically tests all three authentication methods when an ID token is available from successful registration.
 
 ## Examples
 
@@ -129,7 +138,7 @@ HackerOne reports:
 
 ## TO-DO
 1. Check for FCM takeover and support AAAA keys: https://web.archive.org/web/20220921183800/https://abss.me/posts/fcm-takeover/?s=09
-2. Check for accessible Cloud Firestore collections (try to guess) and ability to write: https://iosiro.com/blog/baserunner-exploiting-firebase-datastores
+2. ✅ Check for accessible Cloud Firestore collections (try to guess): https://iosiro.com/blog/baserunner-exploiting-firebase-datastores - **COMPLETED**
 
 ## Contributing
 

@@ -111,17 +111,25 @@ class FirebaseConfigTester:
         # Check via firebasestorage.googleapis.com
         print(f"\nChecking storage bucket: {storage_bucket}")
         
-        # Test both authenticated and anonymous
+        # Test anonymous, authenticated legacy (Bearer), and modern (Firebase)
         headers_list = [{}]
         if self.id_token:
             headers_list.append({"Authorization": f"Bearer {self.id_token}"})
+            headers_list.append({"Authorization": f"Firebase {self.id_token}"})
         
         for i, headers in enumerate(headers_list):
-            auth_type = "authenticated" if headers else "anonymous"
+            if not headers:
+                auth_type = "anonymous"
+            elif "Bearer" in headers.get("Authorization", ""):
+                auth_type = "authenticated (Bearer)"
+            else:
+                auth_type = "authenticated (Firebase)"
             
             # Firebase Storage API
             url = f"https://firebasestorage.googleapis.com/v0/b/{storage_bucket}/o"
-            curl_cmd = f"curl '{url}'" + (f" -H 'Authorization: Bearer {self.id_token}'" if headers else "")
+            curl_cmd = f"curl '{url}'"
+            if headers:
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Checking {url} ({auth_type})", curl_cmd)
             
             try:
@@ -133,7 +141,7 @@ class FirebaseConfigTester:
                     # Save storage listing to file
                     try:
                         listing_data = response.json()
-                        filename = f"storage-listing-{auth_type}.json"
+                        filename = f"storage-listing-{auth_type.replace(' ', '-').replace('(', '').replace(')', '')}.json"
                         with open(filename, 'w') as f:
                             json.dump(listing_data, f, indent=2)
                         print(f"  Listing saved to {filename}")
@@ -149,7 +157,9 @@ class FirebaseConfigTester:
             
             # Google Cloud Storage API
             url = f"https://storage.googleapis.com/{storage_bucket}/"
-            curl_cmd = f"curl '{url}'" + (f" -H 'Authorization: Bearer {self.id_token}'" if headers else "")
+            curl_cmd = f"curl '{url}'"
+            if headers:
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Checking {url} ({auth_type})", curl_cmd)
             
             try:
@@ -172,22 +182,31 @@ class FirebaseConfigTester:
         
         print(f"\nChecking storage upload capability")
         
-        # Test both authenticated and anonymous
+        # Test anonymous, authenticated legacy (Bearer), and modern (Firebase)
         headers_list = [{"Content-Type": "application/json"}]
         if self.id_token:
             headers_list.append({
                 "Authorization": f"Bearer {self.id_token}",
                 "Content-Type": "application/json"
             })
+            headers_list.append({
+                "Authorization": f"Firebase {self.id_token}",
+                "Content-Type": "application/json"
+            })
         
         for i, headers in enumerate(headers_list):
-            auth_type = "authenticated" if "Authorization" in headers else "anonymous"
+            if "Authorization" not in headers:
+                auth_type = "anonymous"
+            elif "Bearer" in headers.get("Authorization", ""):
+                auth_type = "authenticated (Bearer)"
+            else:
+                auth_type = "authenticated (Firebase)"
             
             # Upload file
             url = f"https://firebasestorage.googleapis.com/v0/b/{storage_bucket}/o?name={filename}"
             curl_cmd = f"curl -X POST '{url}' -H 'Content-Type: application/json'"
             if "Authorization" in headers:
-                curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             curl_cmd += f" -d '{json.dumps(upload_data)}'"
             self._print_debug(f"Attempting upload ({auth_type})", curl_cmd)
             
@@ -238,20 +257,26 @@ class FirebaseConfigTester:
             "/config.json"
         ]
         
-        # Test both authenticated and anonymous
+        # Test anonymous, authenticated legacy (Bearer), and modern (Firebase)
         headers_list = [{}]
         if self.id_token:
             headers_list.append({"Authorization": f"Bearer {self.id_token}"})
+            headers_list.append({"Authorization": f"Firebase {self.id_token}"})
         
         for i, headers in enumerate(headers_list):
-            auth_type = "authenticated" if headers else "anonymous"
+            if not headers:
+                auth_type = "anonymous"
+            elif "Bearer" in headers.get("Authorization", ""):
+                auth_type = "authenticated (Bearer)"
+            else:
+                auth_type = "authenticated (Firebase)"
             accessible_endpoints = []
             
             for endpoint in endpoints:
                 url = f"{database_url}{endpoint}"
                 curl_cmd = f"curl '{url}'"
                 if headers:
-                    curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                    curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
                 
                 try:
                     response = requests.get(url, headers=headers, timeout=5)
@@ -263,7 +288,7 @@ class FirebaseConfigTester:
                         try:
                             data = response.json()
                             if data:  # Only save if there's actual data
-                                filename = f"database-{endpoint.replace('/', '').replace('.json', '')}-{auth_type}.json"
+                                filename = f"database-{endpoint.replace('/', '').replace('.json', '')}-{auth_type.replace(' ', '-').replace('(', '').replace(')', '')}.json"
                                 with open(filename, 'w') as f:
                                     json.dump(data, f, indent=2)
                                 print(f"  Data saved to {filename}")
@@ -298,19 +323,25 @@ class FirebaseConfigTester:
         
         print(f"\nChecking database URL: {database_url}")
         
-        # Test both authenticated and anonymous
+        # Test anonymous, authenticated legacy (Bearer), and modern (Firebase)
         headers_list = [{}]
         if self.id_token:
             headers_list.append({"Authorization": f"Bearer {self.id_token}"})
+            headers_list.append({"Authorization": f"Firebase {self.id_token}"})
         
         for i, headers in enumerate(headers_list):
-            auth_type = "authenticated" if headers else "anonymous"
+            if not headers:
+                auth_type = "anonymous"
+            elif "Bearer" in headers.get("Authorization", ""):
+                auth_type = "authenticated (Bearer)"
+            else:
+                auth_type = "authenticated (Firebase)"
             
             # Test with /o/ directory - PUT
             write_url = f"{database_url}/o/poc_{self.random_string}.json"
             curl_cmd = f"curl '{write_url}' -XPUT -d '{json.dumps(poc_data)}'"
             if headers:
-                curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Attempting database PUT with /o/ ({auth_type})", curl_cmd)
             
             try:
@@ -332,7 +363,7 @@ class FirebaseConfigTester:
             post_url = f"{database_url}/o/poc_{self.random_string}_post.json"
             curl_cmd = f"curl '{post_url}' -XPOST -d '{json.dumps(poc_data)}'"
             if headers:
-                curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Attempting database POST with /o/ ({auth_type})", curl_cmd)
             
             try:
@@ -354,7 +385,7 @@ class FirebaseConfigTester:
             direct_put_url = f"{database_url}/poc_{self.random_string}.json"
             curl_cmd = f"curl '{direct_put_url}' -XPUT -d '{json.dumps(poc_data)}'"
             if headers:
-                curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Attempting direct database PUT ({auth_type})", curl_cmd)
             
             try:
@@ -376,7 +407,7 @@ class FirebaseConfigTester:
             direct_post_url = f"{database_url}/poc_{self.random_string}_post.json"
             curl_cmd = f"curl '{direct_post_url}' -XPOST -d '{json.dumps(poc_data)}'"
             if headers:
-                curl_cmd += f" -H 'Authorization: Bearer {self.id_token}'"
+                curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
             self._print_debug(f"Attempting direct database POST ({auth_type})", curl_cmd)
             
             try:
@@ -449,6 +480,81 @@ class FirebaseConfigTester:
                 print(f"✗ Crashlytics not accessible (status: {response.status_code})")
         except Exception as e:
             print(f"✗ Crashlytics check error: {e}")
+    
+    def check_firestore_collections(self):
+        """Check for accessible Firestore collections"""
+        if 'projectId' not in self.config:
+            print("No projectId provided, skipping Firestore collection checks")
+            return
+        
+        project_id = self.config['projectId']
+        
+        print(f"\nChecking Firestore collections accessibility")
+        
+        # Common collection names to check
+        collections = [
+            "users", "Users", "log", "Log", "logs", "Logs",
+            "upload", "Upload", "uploads", "Uploads", "images", "Images",
+            "files", "Files", "settings", "Settings", "messages", "Messages",
+            "config", "Config"
+        ]
+        
+        # Test anonymous, authenticated legacy (Bearer), and modern (Firebase)
+        headers_list = [{}]
+        if self.id_token:
+            headers_list.append({"Authorization": f"Bearer {self.id_token}"})
+            headers_list.append({"Authorization": f"Firebase {self.id_token}"})
+        
+        for i, headers in enumerate(headers_list):
+            if not headers:
+                auth_type = "anonymous"
+            elif "Bearer" in headers.get("Authorization", ""):
+                auth_type = "authenticated (Bearer)"
+            else:
+                auth_type = "authenticated (Firebase)"
+            accessible_collections = []
+            
+            for collection in collections:
+                url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}"
+                curl_cmd = f"curl '{url}'"
+                if headers:
+                    curl_cmd += f" -H 'Authorization: {headers['Authorization']}'"
+                
+                try:
+                    response = requests.get(url, headers=headers, timeout=10)
+                    if response.status_code == 200:
+                        accessible_collections.append(collection)
+                        print(f"✓ Firestore collection accessible ({auth_type}): {collection}")
+                        
+                        # Save collection data if it contains content
+                        try:
+                            data = response.json()
+                            if data and 'documents' in data:  # Only save if there are documents
+                                filename = f"firestore-{collection}-{auth_type.replace(' ', '-').replace('(', '').replace(')', '')}.json"
+                                with open(filename, 'w') as f:
+                                    json.dump(data, f, indent=2)
+                                print(f"  Collection data saved to {filename}")
+                        except Exception as e:
+                            print(f"  Could not parse/save collection data: {e}")
+                    elif response.status_code == 401:
+                        print(f"✗ Firestore collection requires auth ({auth_type}): {collection}")
+                    elif response.status_code == 403:
+                        print(f"✗ Firestore collection access denied ({auth_type}): {collection}")
+                    elif response.status_code == 404:
+                        # Don't print for 404s as this is expected for non-existent collections
+                        pass
+                    else:
+                        print(f"- Firestore collection status {response.status_code} ({auth_type}): {collection}")
+                except requests.exceptions.Timeout:
+                    print(f"- Firestore collection timeout ({auth_type}): {collection}")
+                except Exception as e:
+                    # Silently skip connection errors for non-existent collections
+                    pass
+            
+            if accessible_collections:
+                print(f"\nFirestore Summary ({auth_type}): Found {len(accessible_collections)} accessible collections")
+            else:
+                print(f"\nFirestore Summary ({auth_type}): No accessible collections found")
     
     def run_all_checks(self, email: str, password: str):
         """Run all security checks"""
