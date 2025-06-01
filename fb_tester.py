@@ -9,7 +9,7 @@ Usage examples:
     python3 firebase_test.py --firebase-config '{"apiKey":"AIza...","authDomain":"proj.firebaseapp.com"}'
     
     # Parse JavaScript config with unquoted keys
-    python3 firebase_test.py --firebase-config '{apiKey:"AIza...",authDomain:"proj.firebaseapp.com"}' (currently broken and not supported, claude couldn't make a proper way to parse that one)
+    python3 firebase_test.py --firebase-config '{apiKey:"AIza...",authDomain:"proj.firebaseapp.com"}'
     
     # Parse multiline config 
     python3 firebase_test.py --firebase-config '{
@@ -134,7 +134,7 @@ class FirebaseConfigTester:
         try:
             response = requests.post(url, headers=headers, json=data)
             if response.status_code == 200:
-                print(f"✓ Email/password registration successful with apiKey")
+                print(f"✓ Email/password registration successful with apiKey (status: {response.status_code})")
                 result = response.json()
                 self.id_token = result.get('idToken')
                 return True
@@ -154,7 +154,7 @@ class FirebaseConfigTester:
         try:
             response = requests.post(url, headers=headers, json=anonymous_data)
             if response.status_code == 200:
-                print(f"✓ Anonymous registration successful with apiKey")
+                print(f"✓ Anonymous registration successful with apiKey (status: {response.status_code})")
                 result = response.json()
                 self.id_token = result.get('idToken')
                 return True
@@ -203,7 +203,7 @@ class FirebaseConfigTester:
             try:
                 response = requests.get(url, headers=headers)
                 if response.status_code == 200:
-                    print(f"✓ Storage bucket accessible ({auth_type})")
+                    print(f"✓ Storage bucket accessible ({auth_type}) (status: {response.status_code})")
                     print(f"  URL: {url}")
                     
                     # Save storage listing to file
@@ -217,9 +217,9 @@ class FirebaseConfigTester:
                         print(f"  Could not save listing: {e}")
                         
                 elif response.status_code == 404:
-                    print(f"✗ Storage bucket not found ({auth_type})")
+                    print(f"✗ Storage bucket not found ({auth_type}) (status: {response.status_code})")
                 else:
-                    print(f"✗ Storage bucket check failed ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Storage bucket check failed ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Storage bucket check error ({auth_type}): {e}")
             
@@ -233,8 +233,10 @@ class FirebaseConfigTester:
             try:
                 response = requests.get(url, headers=headers)
                 if response.status_code == 200:
-                    print(f"✓ Google Cloud Storage accessible ({auth_type})")
+                    print(f"✓ Google Cloud Storage accessible ({auth_type}) (status: {response.status_code})")
                     print(f"  URL: {url}")
+                else:
+                    print(f"✗ Google Cloud Storage check failed ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Google Cloud Storage check error ({auth_type}): {e}")
     
@@ -281,16 +283,18 @@ class FirebaseConfigTester:
             try:
                 response = requests.post(url, headers=headers, json=upload_data)
                 if response.status_code == 200:
-                    print(f"✓ Upload successful ({auth_type})")
+                    print(f"✓ Upload successful ({auth_type}) (status: {response.status_code})")
                     
                     # Verify upload
                     verify_url = f"https://firebasestorage.googleapis.com/v0/b/{storage_bucket}/o/{filename}?alt=media"
                     verify_response = requests.get(verify_url)
                     if verify_response.status_code == 200:
-                        print(f"✓ Upload verified ({auth_type})")
+                        print(f"✓ Upload verified ({auth_type}) (status: {verify_response.status_code})")
                         print(f"  URL: {verify_url}")
+                    else:
+                        print(f"✗ Upload verification failed ({auth_type}) (status: {verify_response.status_code})")
                 else:
-                    print(f"✗ Upload failed ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Upload failed ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Upload check error ({auth_type}): {e}")
     
@@ -350,7 +354,7 @@ class FirebaseConfigTester:
                     response = requests.get(url, headers=headers, timeout=5)
                     if response.status_code == 200:
                         accessible_endpoints.append(endpoint)
-                        print(f"✓ Database endpoint accessible ({auth_type}): {endpoint}")
+                        print(f"✓ Database endpoint accessible ({auth_type}): {endpoint} (status: {response.status_code})")
                         
                         # Save data if it contains content
                         try:
@@ -363,12 +367,12 @@ class FirebaseConfigTester:
                         except Exception as e:
                             print(f"  Could not parse/save data: {e}")
                     elif response.status_code == 401:
-                        print(f"✗ Database endpoint requires auth ({auth_type}): {endpoint}")
+                        print(f"✗ Database endpoint requires auth ({auth_type}): {endpoint} (status: {response.status_code})")
                     elif response.status_code == 404:
                         # Don't print for 404s as this is expected for non-existent paths
                         pass
                     else:
-                        print(f"- Database endpoint status {response.status_code} ({auth_type}): {endpoint}")
+                        print(f"- Database endpoint ({auth_type}): {endpoint} (status: {response.status_code})")
                 except requests.exceptions.Timeout:
                     print(f"- Database endpoint timeout ({auth_type}): {endpoint}")
                 except Exception as e:
@@ -415,15 +419,17 @@ class FirebaseConfigTester:
             try:
                 response = requests.put(write_url, headers=headers, json=poc_data)
                 if response.status_code == 200:
-                    print(f"✓ Database PUT successful with /o/ ({auth_type})")
+                    print(f"✓ Database PUT successful with /o/ ({auth_type}) (status: {response.status_code})")
                     
                     # Verify write
                     verify_response = requests.get(write_url, headers=headers)
                     if verify_response.status_code == 200:
-                        print(f"✓ Database PUT verified ({auth_type})")
+                        print(f"✓ Database PUT verified ({auth_type}) (status: {verify_response.status_code})")
                         print(f"  URL: {write_url}")
+                    else:
+                        print(f"✗ Database PUT verification failed ({auth_type}) (status: {verify_response.status_code})")
                 else:
-                    print(f"✗ Database PUT failed with /o/ ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Database PUT failed with /o/ ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Database PUT error with /o/ ({auth_type}): {e}")
             
@@ -437,7 +443,7 @@ class FirebaseConfigTester:
             try:
                 response = requests.post(post_url, headers=headers, json=poc_data)
                 if response.status_code == 200:
-                    print(f"✓ Database POST successful with /o/ ({auth_type})")
+                    print(f"✓ Database POST successful with /o/ ({auth_type}) (status: {response.status_code})")
                     # POST usually returns the new key/ID
                     try:
                         result = response.json()
@@ -445,7 +451,7 @@ class FirebaseConfigTester:
                     except:
                         pass
                 else:
-                    print(f"✗ Database POST failed with /o/ ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Database POST failed with /o/ ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Database POST error with /o/ ({auth_type}): {e}")
             
@@ -459,15 +465,17 @@ class FirebaseConfigTester:
             try:
                 response = requests.put(direct_put_url, headers=headers, json=poc_data)
                 if response.status_code == 200:
-                    print(f"✓ Direct database PUT successful ({auth_type})")
+                    print(f"✓ Direct database PUT successful ({auth_type}) (status: {response.status_code})")
                     
                     # Verify write
                     verify_response = requests.get(direct_put_url, headers=headers)
                     if verify_response.status_code == 200:
-                        print(f"✓ Direct database PUT verified ({auth_type})")
+                        print(f"✓ Direct database PUT verified ({auth_type}) (status: {verify_response.status_code})")
                         print(f"  URL: {direct_put_url}")
+                    else:
+                        print(f"✗ Direct database PUT verification failed ({auth_type}) (status: {verify_response.status_code})")
                 else:
-                    print(f"✗ Direct database PUT failed ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Direct database PUT failed ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Direct database PUT error ({auth_type}): {e}")
             
@@ -481,7 +489,7 @@ class FirebaseConfigTester:
             try:
                 response = requests.post(direct_post_url, headers=headers, json=poc_data)
                 if response.status_code == 200:
-                    print(f"✓ Direct database POST successful ({auth_type})")
+                    print(f"✓ Direct database POST successful ({auth_type}) (status: {response.status_code})")
                     # POST usually returns the new key/ID
                     try:
                         result = response.json()
@@ -489,7 +497,7 @@ class FirebaseConfigTester:
                     except:
                         pass
                 else:
-                    print(f"✗ Direct database POST failed ({auth_type}, status: {response.status_code})")
+                    print(f"✗ Direct database POST failed ({auth_type}) (status: {response.status_code})")
             except Exception as e:
                 print(f"✗ Direct database POST error ({auth_type}): {e}")
     
@@ -516,14 +524,14 @@ class FirebaseConfigTester:
             if response.status_code == 200:
                 result = response.json()
                 if 'entries' in result:
-                    print(f"✓ Remote config accessible")
+                    print(f"✓ Remote config accessible (status: {response.status_code})")
                     with open('remoteconfig.json', 'w') as f:
                         json.dump(result, f, indent=2)
                     print(f"  Config saved to remoteconfig.json")
                 elif result.get('state') == 'NO_TEMPLATE':
-                    print(f"- Remote config: No template configured")
+                    print(f"- Remote config: No template configured (status: {response.status_code})")
                 else:
-                    print(f"✗ Remote config check: Unknown response")
+                    print(f"✗ Remote config check: Unknown response (status: {response.status_code})")
             else:
                 print(f"✗ Remote config check failed (status: {response.status_code})")
         except Exception as e:
@@ -543,7 +551,7 @@ class FirebaseConfigTester:
         try:
             response = requests.get(url, headers=headers)
             if response.status_code == 200:
-                print(f"✓ Crashlytics data accessible")
+                print(f"✓ Crashlytics data accessible (status: {response.status_code})")
             else:
                 print(f"✗ Crashlytics not accessible (status: {response.status_code})")
         except Exception as e:
@@ -592,7 +600,7 @@ class FirebaseConfigTester:
                     response = requests.get(url, headers=headers, timeout=10)
                     if response.status_code == 200:
                         accessible_collections.append(collection)
-                        print(f"✓ Firestore collection accessible ({auth_type}): {collection}")
+                        print(f"✓ Firestore collection accessible ({auth_type}): {collection} (status: {response.status_code})")
                         
                         # Save collection data if it contains content
                         try:
@@ -605,14 +613,14 @@ class FirebaseConfigTester:
                         except Exception as e:
                             print(f"  Could not parse/save collection data: {e}")
                     elif response.status_code == 401:
-                        print(f"✗ Firestore collection requires auth ({auth_type}): {collection}")
+                        print(f"✗ Firestore collection requires auth ({auth_type}): {collection} (status: {response.status_code})")
                     elif response.status_code == 403:
-                        print(f"✗ Firestore collection access denied ({auth_type}): {collection}")
+                        print(f"✗ Firestore collection access denied ({auth_type}): {collection} (status: {response.status_code})")
                     elif response.status_code == 404:
                         # Don't print for 404s as this is expected for non-existent collections
                         pass
                     else:
-                        print(f"- Firestore collection status {response.status_code} ({auth_type}): {collection}")
+                        print(f"- Firestore collection ({auth_type}): {collection} (status: {response.status_code})")
                 except requests.exceptions.Timeout:
                     print(f"- Firestore collection timeout ({auth_type}): {collection}")
                 except Exception as e:
@@ -668,14 +676,54 @@ def parse_firebase_config(config_string: str) -> Dict[str, str]:
     except json.JSONDecodeError:
         pass
     
-    # Remove comments and clean up the string
+    # Remove comments and clean up the string (but preserve URLs and quoted strings)
     lines = []
     for line in config_string.split('\n'):
-        # Remove comments
-        line = re.sub(r'//.*$', '', line)
-        line = re.sub(r'/\*.*?\*/', '', line)
-        lines.append(line)
+        # More sophisticated comment removal that preserves URLs
+        cleaned_line = ""
+        in_quotes = False
+        quote_char = None
+        i = 0
+        
+        while i < len(line):
+            char = line[i]
+            
+            # Handle quotes
+            if char in ['"', "'"] and (i == 0 or line[i-1] != '\\'):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+                cleaned_line += char
+                i += 1
+            # Handle // comments (only outside quotes)
+            elif not in_quotes and char == '/' and i + 1 < len(line) and line[i + 1] == '/':
+                # Check if this is part of a protocol (preceded by :)
+                if i > 0 and line[i-1] == ':':
+                    # This is likely a URL, keep it
+                    cleaned_line += char
+                    i += 1
+                else:
+                    # This is a comment, stop processing this line
+                    break
+            else:
+                cleaned_line += char
+                i += 1
+        
+        # Remove /* */ style comments (simple approach for now)
+        cleaned_line = re.sub(r'/\*.*?\*/', '', cleaned_line)
+        lines.append(cleaned_line)
     config_string = '\n'.join(lines)
+    
+    # Try robust JavaScript object parsing that handles colons in values
+    try:
+        config = _parse_js_object_string(config_string)
+        if config:
+            return config
+    except Exception:
+        pass
     
     # Try to convert JavaScript object notation to valid JSON
     # This handles multiple formats: unquoted keys, single quotes, etc.
@@ -768,6 +816,102 @@ def parse_firebase_config(config_string: str) -> Dict[str, str]:
                    "- Unquoted keys: {apiKey:'value',authDomain:'value'}\n"
                    "- Mixed quotes: {apiKey:\"value\",authDomain:'value'}\n"
                    "- Multiline with whitespace")
+
+
+def _parse_js_object_string(js_string: str) -> Dict[str, str]:
+    """
+    Parse a JavaScript-like object string to a Python dictionary.
+    Handles cases where values contain colons (like URLs, paths, etc.).
+    
+    Args:
+        js_string (str): String in format {key:"value",key2:"value:with:colons"}
+    
+    Returns:
+        dict: Parsed key-value pairs
+    """
+    # Remove outer braces and whitespace
+    content = js_string.strip()
+    if content.startswith('{') and content.endswith('}'):
+        content = content[1:-1]
+    
+    # Dictionary to store results
+    result = {}
+    
+    # Split by commas, but respect quoted strings
+    pairs = []
+    current_pair = ""
+    in_quotes = False
+    escape_next = False
+    
+    for char in content:
+        if escape_next:
+            current_pair += char
+            escape_next = False
+            continue
+            
+        if char == '\\':
+            current_pair += char
+            escape_next = True
+            continue
+            
+        if char == '"':
+            in_quotes = not in_quotes
+            current_pair += char
+        elif char == ',' and not in_quotes:
+            if current_pair.strip():
+                pairs.append(current_pair.strip())
+            current_pair = ""
+        else:
+            current_pair += char
+    
+    # Don't forget the last pair
+    if current_pair.strip():
+        pairs.append(current_pair.strip())
+    
+    # Parse each key-value pair
+    for pair in pairs:
+        # Find the first colon that's not inside quotes
+        colon_pos = -1
+        in_quotes = False
+        escape_next = False
+        
+        for i, char in enumerate(pair):
+            if escape_next:
+                escape_next = False
+                continue
+                
+            if char == '\\':
+                escape_next = True
+                continue
+                
+            if char == '"':
+                in_quotes = not in_quotes
+            elif char == ':' and not in_quotes:
+                colon_pos = i
+                break
+        
+        if colon_pos == -1:
+            continue  # Skip malformed pairs
+        
+        # Extract key and value
+        key_part = pair[:colon_pos].strip()
+        value_part = pair[colon_pos + 1:].strip()
+        
+        # Remove quotes from key if present
+        if key_part.startswith('"') and key_part.endswith('"'):
+            key = key_part[1:-1]
+        else:
+            key = key_part
+        
+        # Remove quotes from value if present
+        if value_part.startswith('"') and value_part.endswith('"'):
+            value = value_part[1:-1]
+        else:
+            value = value_part
+        
+        result[key] = value
+    
+    return result
 
 
 def main():
