@@ -74,6 +74,27 @@ class FirebaseConfigTester:
         
         url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={self.config['apiKey']}"
         headers = {'Content-Type': 'application/json'}
+        
+        # Test 1: Anonymous registration (empty data)
+        anonymous_data = {}
+        curl_cmd_anon = f"curl '{url}' -H 'Content-Type: application/json' --data '{{}}'"
+        self._print_debug(f"Checking anonymous registration at {url}", curl_cmd_anon)
+        
+        try:
+            response = requests.post(url, headers=headers, json=anonymous_data)
+            if response.status_code == 200:
+                print(f"✓ Anonymous registration successful with apiKey")
+                result = response.json()
+                self.id_token = result.get('idToken')
+                return True
+            elif response.status_code == 400:
+                print(f"✗ Anonymous registration not allowed (status: {response.status_code})")
+            else:
+                print(f"✗ Anonymous registration check failed (status: {response.status_code})")
+        except Exception as e:
+            print(f"✗ Anonymous registration check error: {e}")
+        
+        # Test 2: Email/password registration
         data = {
             "email": email,
             "password": password,
@@ -81,23 +102,23 @@ class FirebaseConfigTester:
         }
         
         curl_cmd = f"curl '{url}' -H 'Content-Type: application/json' --data '{json.dumps(data)}'"
-        self._print_debug(f"Checking registration at {url}", curl_cmd)
+        self._print_debug(f"Checking email/password registration at {url}", curl_cmd)
         
         try:
             response = requests.post(url, headers=headers, json=data)
             if response.status_code == 200:
-                print(f"✓ Registration successful with apiKey")
+                print(f"✓ Email/password registration successful with apiKey")
                 result = response.json()
                 self.id_token = result.get('idToken')
                 return True
             elif response.status_code == 400:
-                print(f"✗ Registration not allowed (status: {response.status_code})")
+                print(f"✗ Email/password registration not allowed (status: {response.status_code})")
                 return False
             else:
-                print(f"✗ Registration check failed (status: {response.status_code})")
+                print(f"✗ Email/password registration check failed (status: {response.status_code})")
                 return False
         except Exception as e:
-            print(f"✗ Registration check error: {e}")
+            print(f"✗ Email/password registration check error: {e}")
             return False
     
     def check_storage_bucket(self):
