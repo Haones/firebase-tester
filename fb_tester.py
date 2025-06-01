@@ -89,6 +89,7 @@ class FirebaseConfigTester:
                     if self.debug:
                         print(f"DEBUG: Derived storageBucket from authDomain: {derived_config['storageBucket']}")
         
+        return derived_config
     
     def _parse_config(self, config: Dict[str, str]) -> Dict[str, str]:
         """Parse and clean the Firebase configuration"""
