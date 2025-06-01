@@ -41,10 +41,55 @@ from typing import Dict, Optional, Any
 class FirebaseConfigTester:
     def __init__(self, config: Dict[str, str], debug: bool = False):
         self.config = self._parse_config(config)
+        self.config = self._derive_missing_fields(self.config)
         self.debug = debug
         self.id_token = None
         self.random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         
+    def _derive_missing_fields(self, config: Dict[str, str]) -> Dict[str, str]:
+        """Derive missing fields from available configuration fields"""
+        derived_config = config.copy()
+        
+        # Try to derive projectId from authDomain
+        if 'projectId' not in derived_config and 'authDomain' in derived_config:
+            auth_domain = derived_config['authDomain']
+            if '.firebaseapp.com' in auth_domain:
+                project_id = auth_domain.replace('.firebaseapp.com', '')
+                derived_config['projectId'] = project_id
+                if self.debug:
+                    print(f"DEBUG: Derived projectId '{project_id}' from authDomain '{auth_domain}'")
+        
+        # Try to derive databaseURL from projectId or authDomain
+        if 'databaseURL' not in derived_config:
+            project_id = derived_config.get('projectId')
+            if project_id:
+                derived_config['databaseURL'] = f"https://{project_id}-default-rtdb.firebaseio.com"
+                if self.debug:
+                    print(f"DEBUG: Derived databaseURL from projectId: {derived_config['databaseURL']}")
+            elif 'authDomain' in derived_config:
+                auth_domain = derived_config['authDomain']
+                if '.firebaseapp.com' in auth_domain:
+                    project_id = auth_domain.replace('.firebaseapp.com', '')
+                    derived_config['databaseURL'] = f"https://{project_id}-default-rtdb.firebaseio.com"
+                    if self.debug:
+                        print(f"DEBUG: Derived databaseURL from authDomain: {derived_config['databaseURL']}")
+        
+        # Try to derive storageBucket from projectId or authDomain
+        if 'storageBucket' not in derived_config:
+            project_id = derived_config.get('projectId')
+            if project_id:
+                derived_config['storageBucket'] = f"{project_id}.appspot.com"
+                if self.debug:
+                    print(f"DEBUG: Derived storageBucket from projectId: {derived_config['storageBucket']}")
+            elif 'authDomain' in derived_config:
+                auth_domain = derived_config['authDomain']
+                if '.firebaseapp.com' in auth_domain:
+                    project_id = auth_domain.replace('.firebaseapp.com', '')
+                    derived_config['storageBucket'] = f"{project_id}.appspot.com"
+                    if self.debug:
+                        print(f"DEBUG: Derived storageBucket from authDomain: {derived_config['storageBucket']}")
+        
+    
     def _parse_config(self, config: Dict[str, str]) -> Dict[str, str]:
         """Parse and clean the Firebase configuration"""
         # Handle unicode escape sequences
@@ -75,26 +120,7 @@ class FirebaseConfigTester:
         url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={self.config['apiKey']}"
         headers = {'Content-Type': 'application/json'}
         
-        # Test 1: Anonymous registration (empty data)
-        anonymous_data = {}
-        curl_cmd_anon = f"curl '{url}' -H 'Content-Type: application/json' --data '{{}}'"
-        self._print_debug(f"Checking anonymous registration at {url}", curl_cmd_anon)
-        
-        try:
-            response = requests.post(url, headers=headers, json=anonymous_data)
-            if response.status_code == 200:
-                print(f"✓ Anonymous registration successful with apiKey")
-                result = response.json()
-                self.id_token = result.get('idToken')
-                return True
-            elif response.status_code == 400:
-                print(f"✗ Anonymous registration not allowed (status: {response.status_code})")
-            else:
-                print(f"✗ Anonymous registration check failed (status: {response.status_code})")
-        except Exception as e:
-            print(f"✗ Anonymous registration check error: {e}")
-        
-        # Test 2: Email/password registration
+        # Test 1: Email/password registration (prioritized)
         data = {
             "email": email,
             "password": password,
@@ -113,12 +139,32 @@ class FirebaseConfigTester:
                 return True
             elif response.status_code == 400:
                 print(f"✗ Email/password registration not allowed (status: {response.status_code})")
-                return False
             else:
                 print(f"✗ Email/password registration check failed (status: {response.status_code})")
-                return False
         except Exception as e:
             print(f"✗ Email/password registration check error: {e}")
+        
+        # Test 2: Anonymous registration (fallback)
+        print("Trying anonymous registration as fallback...")
+        anonymous_data = {}
+        curl_cmd_anon = f"curl '{url}' -H 'Content-Type: application/json' --data '{{}}'"
+        self._print_debug(f"Checking anonymous registration at {url}", curl_cmd_anon)
+        
+        try:
+            response = requests.post(url, headers=headers, json=anonymous_data)
+            if response.status_code == 200:
+                print(f"✓ Anonymous registration successful with apiKey")
+                result = response.json()
+                self.id_token = result.get('idToken')
+                return True
+            elif response.status_code == 400:
+                print(f"✗ Anonymous registration not allowed (status: {response.status_code})")
+                return False
+            else:
+                print(f"✗ Anonymous registration check failed (status: {response.status_code})")
+                return False
+        except Exception as e:
+            print(f"✗ Anonymous registration check error: {e}")
             return False
     
     def check_storage_bucket(self):
