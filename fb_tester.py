@@ -40,9 +40,9 @@ from typing import Dict, Optional, Any
 
 class FirebaseConfigTester:
     def __init__(self, config: Dict[str, str], debug: bool = False):
+        self.debug = debug
         self.config = self._parse_config(config)
         self.config = self._derive_missing_fields(self.config)
-        self.debug = debug
         self.id_token = None
         self.random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         
