@@ -39,6 +39,18 @@ Main goal of this tool is to cover all checks and put them together. If you know
    chmod +x fb_tester.py
    ```
 
+### Using in Docker
+
+1. **Clone or download the repository**
+2. **Build the Docker image:**
+   ```bash
+   docker build -t "fb-tester:latest" .
+   ```
+3. **Example running in docker:**
+   ```bash
+   docker run -d fb-tester:latest --firebase-config '{"apiKey":"AIza...", etc...}'
+   ```
+
 ## Quick Start
 
 ### Basic Usage
